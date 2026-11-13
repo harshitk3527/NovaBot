@@ -1,0 +1,5 @@
+import { ApiError } from '../api/types'
+export const relativeDate = (date: string) => { const diff = Date.now() - new Date(date).getTime(); const mins = Math.max(1, Math.floor(diff / 60000)); if (mins < 60) return `${mins}m ago`; const hours = Math.floor(mins / 60); if (hours < 24) return `${hours}h ago`; return `${Math.floor(hours / 24)}d ago` }
+export const errorMessage = (error: unknown) => { if (!(error instanceof ApiError)) return 'Something went wrong'; if (error.status === 403) return "You don't have permission"; if (error.status === 413) return 'File or request too large'; if (error.status === 422) return error.message || 'Please check the form'; if (error.status === 429) return 'Too many requests or daily limit reached, try again later'; if (error.status >= 500) return 'Something went wrong'; return error.message }
+export const formatDate = (date: string | null) => date ? new Date(date).toLocaleString() : '—'
+export const isSoon = (date: string | null) => Boolean(date && new Date(date).getTime() - Date.now() < 7 * 86400000 && new Date(date).getTime() > Date.now())
