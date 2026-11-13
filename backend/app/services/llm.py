@@ -7,7 +7,9 @@ from openai import AsyncOpenAI
 from app.core.config import get_settings
 
 
-async def chat_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
+async def chat_json(
+    system_prompt: str, user_prompt: str, model: str | None = None
+) -> dict[str, Any]:
     settings = get_settings()
     if not settings.openai_api_key:
         raise RuntimeError("Chat service is not configured")
@@ -19,7 +21,7 @@ async def chat_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
         for attempt in range(settings.llm_max_retries):
             try:
                 response = await client.chat.completions.create(
-                    model=settings.llm_model,
+                    model=model or settings.llm_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},

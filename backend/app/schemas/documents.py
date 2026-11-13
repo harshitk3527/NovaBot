@@ -18,11 +18,12 @@ class DocumentResponse(BaseModel):
     expires_at: datetime | None
     uploaded_by: UUID
     superseded_by: UUID | None
+    needs_review: bool
     created_at: datetime
 
 
 class DocumentUpdateRequest(BaseModel):
-    status: str | None = Field(default=None, pattern="^archive$")
+    status: str | None = Field(default=None, pattern="^(archive|approve)$")
     expires_at: datetime | None = None
 
 

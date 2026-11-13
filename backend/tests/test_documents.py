@@ -94,6 +94,30 @@ async def test_expired_document_is_excluded_without_job(client):
 
 
 @pytest.mark.asyncio
+async def test_documents_needing_review_are_excluded(client):
+    _, token = await make_admin(client)
+    async with db_session.AsyncSessionLocal() as db:
+        user = await db.scalar(select(User).where(User.role == UserRole.ADMIN))
+        document = Document(
+            title="Poisoned",
+            version="1",
+            status=DocumentStatus.ACTIVE,
+            needs_review=True,
+            content_hash=uuid4().hex,
+            valid_from=datetime.now(timezone.utc),
+            uploaded_by=user.id,
+        )
+        db.add(document)
+        await db.commit()
+        result = await db.scalar(
+            select(Document)
+            .join(User, Document.uploaded_by == User.id)
+            .where(active_documents_filter(user.tenant_id))
+        )
+    assert result is None
+
+
+@pytest.mark.asyncio
 async def test_non_admin_gets_403(client):
     register = await client.post(
         "/auth/register",

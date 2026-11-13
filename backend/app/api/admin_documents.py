@@ -44,7 +44,7 @@ async def upload_document(
 ) -> Document:
     settings = get_settings()
     filename = file.filename or ""
-    content = await file.read()
+    content = await file.read(settings.max_upload_size_bytes + 1)
     if len(content) > settings.max_upload_size_bytes:
         raise HTTPException(status_code=413, detail="File is too large")
     try:
@@ -71,7 +71,8 @@ async def upload_document(
     previous_versions = (
         await db.scalars(
             select(Document)
-            .where(Document.title == document_title, Document.uploaded_by == user.id)
+            .join(User, Document.uploaded_by == User.id)
+            .where(Document.title == document_title, User.tenant_id == user.tenant_id)
             .order_by(Document.created_at.desc())
         )
     ).all()
@@ -154,6 +155,9 @@ async def update_document(
     if payload.status == "archive":
         document.status = DocumentStatus.ARCHIVED
         changes["status"] = "archived"
+    elif payload.status == "approve":
+        document.needs_review = False
+        changes["needs_review"] = False
     if "expires_at" in payload.model_fields_set:
         document.expires_at = payload.expires_at
         changes["expires_at"] = payload.expires_at.isoformat() if payload.expires_at else None
@@ -163,7 +167,13 @@ async def update_document(
         AuditLog(
             user_id=user.id,
             ip=request.client.host if request.client else None,
-            action="document.archive" if payload.status == "archive" else "document.update",
+            action=(
+                "document.archive"
+                if payload.status == "archive"
+                else "document.approve"
+                if payload.status == "approve"
+                else "document.update"
+            ),
             details={"document_id": str(document.id), "changes": changes},
         )
     )

@@ -2,6 +2,7 @@ import os
 from collections.abc import AsyncGenerator
 
 import pytest_asyncio
+from redis.asyncio import Redis
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -16,6 +17,18 @@ from app.services import ingestion
 @pytest_asyncio.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
     url = os.getenv("TEST_DATABASE_URL", get_settings().database_url)
+    settings = get_settings()
+    original_moderation = settings.moderation_enabled
+    original_scope_classifier = settings.scope_classifier_enabled
+    settings.moderation_enabled = False
+    settings.scope_classifier_enabled = False
+    redis = Redis.from_url(get_settings().redis_url, decode_responses=True)
+    try:
+        keys = [key async for key in redis.scan_iter(match="presidio:*")]
+        if keys:
+            await redis.delete(*keys)
+    finally:
+        await redis.aclose()
     engine = create_async_engine(url)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -36,6 +49,8 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.clear()
     db_session.AsyncSessionLocal = original_session_factory
     ingestion.AsyncSessionLocal = original_ingestion_factory
+    settings.moderation_enabled = original_moderation
+    settings.scope_classifier_enabled = original_scope_classifier
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.drop_all)
     await engine.dispose()

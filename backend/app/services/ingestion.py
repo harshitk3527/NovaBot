@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.db.models import AuditLog, Chunk, Document, DocumentStatus, User
 from app.db.session import AsyncSessionLocal
 from app.services.redis_version import increment_kb_version
+from app.services.guardrails import contains_injection
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
 
@@ -115,6 +116,7 @@ async def process_document(
         extension = validate_upload(filename, content)
         pages = extract_pages(extension, content)
         chunks = chunk_pages(pages)
+        needs_review = any(contains_injection(item[2]) for item in chunks)
         embeddings = await embed_chunks([item[2] for item in chunks]) if chunks else []
         superseded_tenant = False
         async with AsyncSessionLocal() as db:
@@ -124,9 +126,10 @@ async def process_document(
                     return
                 previous = await db.scalar(
                     select(Document)
+                    .join(User, Document.uploaded_by == User.id)
                     .where(
                         Document.title == document.title,
-                        Document.uploaded_by == document.uploaded_by,
+                        User.tenant_id == tenant_id,
                         Document.status == DocumentStatus.ACTIVE,
                     )
                     .where(Document.id != document.id)
@@ -145,6 +148,7 @@ async def process_document(
                     await db.flush()
                     superseded_tenant = True
                 document.status = DocumentStatus.ACTIVE
+                document.needs_review = needs_review
                 for (page, index, text), embedding in zip(chunks, embeddings):
                     db.add(
                         Chunk(
@@ -158,8 +162,8 @@ async def process_document(
                 db.add(
                     AuditLog(
                         user_id=document.uploaded_by,
-                        action="document.ready",
-                        details={"document_id": str(document.id)},
+                        action="document.needs_review" if needs_review else "document.ready",
+                        details={"document_id": str(document.id), "needs_review": needs_review},
                     )
                 )
         if superseded_tenant:

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,8 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.db.models import RefreshToken, User, UserRole
+from app.db.models import AuditLog, RefreshToken, User, UserRole
+from app.services.abuse import allow_request, clear_login_failures, login_locked, record_login_failure
 from app.db.session import get_db
 from app.schemas.auth import (
     LoginRequest,
@@ -64,12 +65,30 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+async def login(
+    payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)
+) -> TokenResponse:
+    ip = request.client.host if request.client else "unknown"
+    if not await allow_request("login-ip", ip, get_settings().login_rate_limit_per_minute):
+        db.add(AuditLog(action="rate_limit.login", ip=ip, details=None))
+        await db.commit()
+        raise HTTPException(status_code=429, detail="Too many login attempts")
+    if await login_locked(payload.email):
+        db.add(AuditLog(action="auth.login_locked", ip=ip, details=None))
+        await db.commit()
+        raise HTTPException(status_code=429, detail="Too many login attempts")
     user = await db.scalar(select(User).where(User.email == payload.email.lower()))
     if user is None or not verify_password(payload.password, user.password_hash):
+        await record_login_failure(payload.email)
+        db.add(AuditLog(user_id=user.id if user else None, action="auth.login_failed", ip=ip, details=None))
+        await db.commit()
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
+        await record_login_failure(payload.email)
+        db.add(AuditLog(user_id=user.id, action="auth.login_failed", ip=ip, details=None))
+        await db.commit()
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    await clear_login_failures(payload.email)
     tokens, refresh_record = _tokens(user)
     db.add(refresh_record)
     await db.commit()

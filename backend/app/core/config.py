@@ -33,6 +33,21 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 3600
     cache_prompt_version: str = "v1"
     cache_index_name: str = "presidio_semantic_cache"
+    max_message_length: int = 4000
+    max_output_length: int = 10000
+    prompt_canary: str = "PRESIDIO_SYSTEM_CANARY_7F3A"
+    cors_allowed_origins: str = "http://localhost:3000"
+    max_request_size_bytes: int = 12 * 1024 * 1024
+    chat_rate_limit_per_minute: int = 20
+    login_rate_limit_per_minute: int = 5
+    rate_limit_window_seconds: int = 60
+    daily_token_budget: int = 100000
+    login_failure_limit: int = 5
+    login_lockout_seconds: int = 900
+    pii_redaction_enabled: bool = True
+    moderation_enabled: bool = True
+    scope_classifier_enabled: bool = True
+    scope_model: str = "gpt-4o-mini"
 
     model_config = SettingsConfigDict(
         env_file=".env",

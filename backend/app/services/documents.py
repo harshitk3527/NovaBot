@@ -8,6 +8,7 @@ from app.db.models import Document, DocumentStatus, User
 def active_documents_filter(tenant_id: UUID | None = None):
     conditions = [
         Document.status == DocumentStatus.ACTIVE,
+        Document.needs_review.is_(False),
         or_(Document.expires_at.is_(None), Document.expires_at > func.now()),
     ]
     if tenant_id is not None:

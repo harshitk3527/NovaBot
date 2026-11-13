@@ -67,6 +67,7 @@ class Document(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     superseded_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id"))
+    needs_review: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
