@@ -19,10 +19,12 @@ class UserRole(str, enum.Enum):
 
 
 class DocumentStatus(str, enum.Enum):
+    PROCESSING = "processing"
     ACTIVE = "active"
     SUPERSEDED = "superseded"
     EXPIRED = "expired"
     ARCHIVED = "archived"
+    FAILED = "failed"
 
 
 class MessageRole(str, enum.Enum):

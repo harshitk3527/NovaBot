@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.config import get_settings
 from app.db.models import Base
 from app.main import app
+from app.db import session as db_session
 from app.db.session import get_db
+from app.services import ingestion
 
 
 @pytest_asyncio.fixture
@@ -24,10 +26,16 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
         async with session_factory() as session:
             yield session
 
+    original_session_factory = db_session.AsyncSessionLocal
+    original_ingestion_factory = ingestion.AsyncSessionLocal
+    db_session.AsyncSessionLocal = session_factory
+    ingestion.AsyncSessionLocal = session_factory
     app.dependency_overrides[get_db] = override_get_db
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as test_client:
         yield test_client
     app.dependency_overrides.clear()
+    db_session.AsyncSessionLocal = original_session_factory
+    ingestion.AsyncSessionLocal = original_ingestion_factory
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.drop_all)
     await engine.dispose()

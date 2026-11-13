@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     openai_api_key: str = ""
     app_env: str = "development"
+    max_upload_size_bytes: int = 10 * 1024 * 1024
+    embedding_model: str = "text-embedding-3-small"
+    embedding_batch_size: int = 100
+    ingestion_chunk_tokens: int = 650
+    ingestion_chunk_overlap_tokens: int = 100
+    staleness_job_interval_seconds: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",
