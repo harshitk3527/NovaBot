@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     ingestion_chunk_tokens: int = 650
     ingestion_chunk_overlap_tokens: int = 100
     staleness_job_interval_seconds: int = 60
+    retrieval_similarity_cutoff: float = 0.75
+    retrieval_default_k: int = 8
+    openai_timeout_seconds: float = 30.0
+    llm_model: str = "gpt-4o-mini"
+    llm_max_tokens: int = 600
+    llm_max_retries: int = 3
 
     model_config = SettingsConfigDict(
         env_file=".env",
