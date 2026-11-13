@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -52,7 +52,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
         email=payload.email.lower(),
         password_hash=hash_password(payload.password),
         role=UserRole.CUSTOMER,
-        tenant_id=uuid4(),
+        tenant_id=UUID(get_settings().default_tenant_id),
     )
     db.add(user)
     try:

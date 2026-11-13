@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Menu, Plus, Send, Trash2, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { toast } from 'sonner'
@@ -10,11 +11,12 @@ import { errorMessage, relativeDate } from '../lib/utils'
 import { Button, ConfirmDialog, EmptyState, ErrorBanner, Spinner } from '../components/UI'
 
 export default function Chat() {
-  const queryClient = useQueryClient(); const [selected, setSelected] = useState<string>(); const [mobileOpen, setMobileOpen] = useState(false); const [draft, setDraft] = useState(''); const [optimistic, setOptimistic] = useState<Message[]>([]); const [confirm, setConfirm] = useState<string>()
+  const queryClient = useQueryClient(); const location = useLocation(); const navigate = useNavigate(); const [selected, setSelected] = useState<string>(); const [mobileOpen, setMobileOpen] = useState(false); const [draft, setDraft] = useState(''); const [optimistic, setOptimistic] = useState<Message[]>([]); const [confirm, setConfirm] = useState<string>()
   const conversations = useQuery({ queryKey: ['conversations'], queryFn: listConversations })
   const messages = useQuery({ queryKey: ['messages', selected], queryFn: () => getMessages(selected!), enabled: Boolean(selected) })
   const mutation = useMutation({ mutationFn: (text: string) => sendMessage(text, selected), onSuccess: (response, text) => { setSelected(response.conversation_id); setOptimistic([]); setDraft(''); queryClient.invalidateQueries({ queryKey: ['conversations'] }); queryClient.setQueryData(['messages', response.conversation_id], (old: Message[] = []) => [...old, { id: crypto.randomUUID(), role: 'user', content: text, citations: null, created_at: new Date().toISOString() }, { id: crypto.randomUUID(), role: 'assistant', content: response.answer, citations: response.citations, created_at: new Date().toISOString(), needs_human: response.needs_human, cached: response.cached } as Message]) }, onError: e => toast.error(errorMessage(e)) })
   const remove = useMutation({ mutationFn: deleteConversation, onSuccess: (_, id) => { if (selected === id) { setSelected(undefined); setOptimistic([]) }; queryClient.invalidateQueries({ queryKey: ['conversations'] }); setConfirm(undefined) } })
+  useEffect(() => { if (location.state?.newChat) { setSelected(undefined); setOptimistic([]); setDraft(''); setMobileOpen(false); setConfirm(undefined); navigate('/chat', { replace: true, state: null }) } }, [location.state, navigate])
   useEffect(() => { if (messages.error) { setSelected(undefined); queryClient.invalidateQueries({ queryKey: ['conversations'] }) } }, [messages.error])
   const allMessages = useMemo(() => [...(messages.data || []), ...optimistic], [messages.data, optimistic])
   const submit = () => { const text = draft.trim(); if (!text || text.length > 4000 || mutation.isPending) return; setOptimistic([{ id: crypto.randomUUID(), role: 'user', content: text, citations: null, created_at: new Date().toISOString() }, ...[]]); mutation.mutate(text) }

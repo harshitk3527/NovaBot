@@ -118,6 +118,93 @@ async def upload_document(
     return document
 
 
+@router.put("/{document_id}", response_model=DocumentResponse, status_code=202)
+async def replace_document(
+    request: Request,
+    document_id: UUID,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    expires_at: datetime | None = Form(default=None),
+    user: User = admin_dependency,
+    db: AsyncSession = Depends(get_db),
+) -> Document:
+    """Upload a new version while retaining the existing document history."""
+    previous = await _document_for_admin(document_id, user, db)
+    if previous.status == DocumentStatus.PROCESSING:
+        raise HTTPException(status_code=409, detail="This document is already being updated")
+
+    settings = get_settings()
+    filename = file.filename or ""
+    content = await file.read(settings.max_upload_size_bytes + 1)
+    if len(content) > settings.max_upload_size_bytes:
+        raise HTTPException(status_code=413, detail="File is too large")
+    try:
+        extension = ingestion.validate_upload(filename, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    digest = ingestion.content_hash(content)
+    duplicate = await db.scalar(
+        select(Document)
+        .join(User, Document.uploaded_by == User.id)
+        .where(
+            User.tenant_id == user.tenant_id,
+            Document.content_hash == digest,
+            Document.status == DocumentStatus.ACTIVE,
+            Document.id != previous.id,
+        )
+    )
+    if duplicate is not None or digest == previous.content_hash:
+        raise HTTPException(status_code=409, detail="An identical active document already exists")
+
+    versions = (
+        await db.scalars(
+            select(Document)
+            .join(User, Document.uploaded_by == User.id)
+            .where(Document.title == previous.title, User.tenant_id == user.tenant_id)
+        )
+    ).all()
+    try:
+        version_number = max(int(item.version) for item in versions) + 1
+    except ValueError:
+        version_number = len(versions) + 1
+
+    document = Document(
+        title=previous.title,
+        version=str(version_number),
+        status=DocumentStatus.PROCESSING,
+        content_hash=digest,
+        valid_from=datetime.now(timezone.utc),
+        expires_at=previous.expires_at if expires_at is None else expires_at,
+        uploaded_by=user.id,
+    )
+    db.add(document)
+    db.add(
+        AuditLog(
+            user_id=user.id,
+            ip=request.client.host if request.client else None,
+            action="document.replace",
+            details={
+                "filename": filename,
+                "extension": extension,
+                "document_id": str(previous.id),
+                "replacement_version": str(version_number),
+            },
+        )
+    )
+    await db.commit()
+    await db.refresh(document)
+    await increment_kb_version(user.tenant_id)
+    background_tasks.add_task(
+        ingestion.process_document,
+        document.id,
+        user.tenant_id,
+        filename,
+        content,
+    )
+    return document
+
+
 @router.get("", response_model=DocumentListResponse)
 async def list_documents(
     user: User = admin_dependency,

@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     ingestion_chunk_tokens: int = 650
     ingestion_chunk_overlap_tokens: int = 100
     staleness_job_interval_seconds: int = 60
-    retrieval_similarity_cutoff: float = 0.75
+    default_tenant_id: str = "00000000-0000-0000-0000-000000000001"
+    retrieval_similarity_cutoff: float = 0.3
     retrieval_default_k: int = 8
     openai_timeout_seconds: float = 30.0
     llm_model: str = "gpt-4o-mini"
@@ -28,10 +29,11 @@ class Settings(BaseSettings):
     rewriter_model: str = "gpt-4o-mini"
     rewriter_max_tokens: int = 120
     max_rewritten_question_length: int = 1000
-    memory_window_messages: int = 8
+    memory_window_messages: int = 15
+    memory_summary_max_tokens: int = 300
     cache_distance_threshold: float = 0.1
     cache_ttl_seconds: int = 3600
-    cache_prompt_version: str = "v1"
+    cache_prompt_version: str = "v2"
     cache_index_name: str = "presidio_semantic_cache"
     max_message_length: int = 4000
     max_output_length: int = 10000

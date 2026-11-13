@@ -73,13 +73,16 @@ All settings are read from `.env` using `pydantic-settings`. Important values:
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access-token lifetime | `15` |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh-token lifetime | `7` |
 | `OPENAI_API_KEY` | OpenAI API key | empty |
+| `EMBEDDING_MODEL` | Shared multilingual model for retrieval and semantic caching | `text-embedding-3-small` |
 | `MAX_UPLOAD_SIZE_BYTES` | Maximum document size | 10 MiB |
 | `MAX_MESSAGE_LENGTH` | Maximum chat message length | `4000` |
 | `MAX_OUTPUT_LENGTH` | Maximum generated answer length | `10000` |
 | `RETRIEVAL_SIMILARITY_CUTOFF` | Minimum retrieval similarity | `0.75` |
-| `MEMORY_WINDOW_MESSAGES` | Messages used for follow-up rewriting | `8` |
+| `MEMORY_WINDOW_MESSAGES` | Messages used for follow-up rewriting before summarization | `15` |
+| `MEMORY_SUMMARY_MAX_TOKENS` | Maximum tokens for summarized conversation history | `300` |
 | `CACHE_DISTANCE_THRESHOLD` | RedisVL cache distance threshold | `0.1` |
 | `CACHE_TTL_SECONDS` | Semantic-cache TTL | `3600` |
+| `CACHE_PROMPT_VERSION` | Semantic-cache namespace/version | `v2` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated CORS allowlist | `http://localhost:3000` |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Per-user/IP chat limit | `20` |
 | `LOGIN_RATE_LIMIT_PER_MINUTE` | Login rate limit | `5` |

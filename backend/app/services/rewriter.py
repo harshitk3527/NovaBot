@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.config import get_settings
 from app.db.models import Message
+from app.services.memory import HistoryMessage
 from app.services.llm import chat_text
 
 
@@ -13,7 +14,9 @@ class StandaloneQuestion(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
 
 
-async def rewrite_question(question: str, history: Sequence[Message]) -> str:
+async def rewrite_question(
+    question: str, history: Sequence[Message | HistoryMessage]
+) -> str:
     if not history:
         return question.strip()
     settings = get_settings()

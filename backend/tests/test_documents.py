@@ -70,6 +70,28 @@ async def test_new_version_supersedes_old(client, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_update_document_creates_next_version(client, monkeypatch):
+    _, token = await make_admin(client)
+    monkeypatch.setattr(ingestion, "embed_chunks", no_op_embeddings)
+    headers = {"Authorization": f"Bearer {token}"}
+    first = await client.post(
+        "/admin/documents",
+        headers=headers,
+        data={"title": "Release Notes"},
+        files={"file": ("notes.txt", b"first release", "text/plain")},
+    )
+    replacement = await client.put(
+        f"/admin/documents/{first.json()['id']}",
+        headers=headers,
+        files={"file": ("notes.txt", b"second release", "text/plain")},
+    )
+
+    assert replacement.status_code == 202
+    assert replacement.json()["title"] == "Release Notes"
+    assert replacement.json()["version"] == "2"
+
+
+@pytest.mark.asyncio
 async def test_expired_document_is_excluded_without_job(client):
     _, token = await make_admin(client)
     async with db_session.AsyncSessionLocal() as db:

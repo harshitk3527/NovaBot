@@ -4,9 +4,10 @@ from uuid import uuid4
 import pytest
 
 from app.db import session as db_session
-from app.db.models import Document, DocumentStatus, User, UserRole
+from app.db.models import Conversation, Document, DocumentStatus, Message, MessageRole, User, UserRole
 from app.schemas.chat import CitationResponse
 from app.services.cache import get_cached_answer
+from app.services.memory import load_history
 from app.services.retrieval import RetrievedChunk
 
 
@@ -33,6 +34,39 @@ def source() -> RetrievedChunk:
         page=1,
         similarity=0.95,
     )
+
+
+@pytest.mark.asyncio
+async def test_history_summarizes_old_messages_and_keeps_recent_five(monkeypatch):
+    messages = [
+        Message(role=MessageRole.USER if index % 2 == 0 else MessageRole.ASSISTANT, content=f"message {index}")
+        for index in range(16)
+    ]
+
+    class Result:
+        def all(self):
+            return list(reversed(messages))
+
+    class FakeDB:
+        async def scalars(self, query):
+            return Result()
+
+    async def fake_summary(**kwargs):
+        return "summary of ten messages"
+
+    monkeypatch.setattr("app.services.memory.chat_text", fake_summary)
+    history = await load_history(FakeDB(), Conversation(), limit=15)
+
+    assert len(history) == 6
+    assert history[0].role == MessageRole.SYSTEM
+    assert history[0].content == "Earlier conversation summary: summary of ten messages"
+    assert [message.content for message in history[1:]] == [
+        "message 11",
+        "message 12",
+        "message 13",
+        "message 14",
+        "message 15",
+    ]
 
 
 @pytest.mark.asyncio

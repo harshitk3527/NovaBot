@@ -19,7 +19,7 @@ from app.services.redis_version import get_kb_version
 @lru_cache
 def _cache() -> SemanticCache:
     settings = get_settings()
-    vectorizer = BaseVectorizer(model="external-openai", dims=1536)
+    vectorizer = BaseVectorizer(model=settings.embedding_model, dims=1536)
     return SemanticCache(
         name=settings.cache_index_name,
         distance_threshold=settings.cache_distance_threshold,
