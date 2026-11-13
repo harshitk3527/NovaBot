@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.admin_documents import router as admin_documents_router
 from app.api.chat import router as chat_router
+from app.api.conversations import router as conversations_router
 from app.api.auth import router as auth_router
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
@@ -34,6 +35,7 @@ register_error_handlers(app)
 app.include_router(auth_router)
 app.include_router(admin_documents_router)
 app.include_router(chat_router)
+app.include_router(conversations_router)
 
 
 @app.get("/")

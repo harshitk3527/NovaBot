@@ -28,6 +28,7 @@ class ChatResponse(BaseModel):
     citations: list[CitationResponse]
     conversation_id: UUID
     needs_human: bool
+    cached: bool
 
 
 class LLMAnswer(BaseModel):

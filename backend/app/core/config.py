@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     llm_max_tokens: int = 600
     llm_max_retries: int = 3
+    rewriter_model: str = "gpt-4o-mini"
+    rewriter_max_tokens: int = 120
+    max_rewritten_question_length: int = 1000
+    memory_window_messages: int = 8
+    cache_distance_threshold: float = 0.1
+    cache_ttl_seconds: int = 3600
+    cache_prompt_version: str = "v1"
+    cache_index_name: str = "presidio_semantic_cache"
 
     model_config = SettingsConfigDict(
         env_file=".env",

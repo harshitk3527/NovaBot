@@ -41,3 +41,40 @@ async def chat_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
     finally:
         await client.close()
     raise RuntimeError("Chat service failed")
+
+
+async def chat_text(
+    system_prompt: str,
+    user_prompt: str,
+    model: str,
+    max_tokens: int,
+) -> str:
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise RuntimeError("Chat service is not configured")
+    client = AsyncOpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.openai_timeout_seconds,
+    )
+    try:
+        for attempt in range(settings.llm_max_retries):
+            try:
+                response = await client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    max_tokens=max_tokens,
+                )
+                content = response.choices[0].message.content
+                if not content:
+                    raise ValueError("Empty model response")
+                return content
+            except Exception:
+                if attempt == settings.llm_max_retries - 1:
+                    raise
+                await asyncio.sleep(2**attempt)
+    finally:
+        await client.close()
+    raise RuntimeError("Chat service failed")
