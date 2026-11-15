@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown(wait=False)
 
 
-app = FastAPI(title="Presidio Support Chatbot API", lifespan=lifespan)
+app = FastAPI(title="NovaBot API", lifespan=lifespan)
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -91,4 +91,4 @@ app.include_router(conversations_router)
 
 @app.get("/")
 async def root() -> dict[str, str]:
-    return {"message": "Presidio Support Chatbot API"}
+    return {"message": "NovaBot API"}

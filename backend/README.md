@@ -1,4 +1,4 @@
-# Presidio Support Chatbot Backend
+# NovaBot Backend
 
 FastAPI backend for a tenant-isolated customer-support chatbot. It provides
 password authentication, role-based administration, document ingestion and
@@ -32,7 +32,7 @@ Copy-Item .env.example .env
 Set at least these values in `.env`:
 
 ```dotenv
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/presidio
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/novabot
 REDIS_URL=redis://localhost:6379/0
 JWT_SECRET=replace-with-a-long-random-secret
 OPENAI_API_KEY=replace-with-your-key
@@ -118,7 +118,7 @@ No authentication.
 Response `200`:
 
 ```json
-{"message": "Presidio Support Chatbot API"}
+{"message": "NovaBot API"}
 ```
 
 ### Authentication

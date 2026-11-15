@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/presidio"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/novabot"
     redis_url: str = "redis://localhost:6379/0"
     jwt_secret: str = Field(default="change-me-in-production", min_length=16)
     jwt_algorithm: str = "HS256"
@@ -34,10 +34,10 @@ class Settings(BaseSettings):
     cache_distance_threshold: float = 0.1
     cache_ttl_seconds: int = 3600
     cache_prompt_version: str = "v2"
-    cache_index_name: str = "presidio_semantic_cache"
+    cache_index_name: str = "novabot_semantic_cache"
     max_message_length: int = 4000
     max_output_length: int = 10000
-    prompt_canary: str = "PRESIDIO_SYSTEM_CANARY_7F3A"
+    prompt_canary: str = "NOVABOT_SYSTEM_CANARY_7F3A"
     cors_allowed_origins: str = "http://localhost:3000"
     max_request_size_bytes: int = 12 * 1024 * 1024
     chat_rate_limit_per_minute: int = 20

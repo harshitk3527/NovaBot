@@ -24,7 +24,7 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
     settings.scope_classifier_enabled = False
     redis = Redis.from_url(get_settings().redis_url, decode_responses=True)
     try:
-        keys = [key async for key in redis.scan_iter(match="presidio:*")]
+        keys = [key async for key in redis.scan_iter(match="novabot:*")]
         if keys:
             await redis.delete(*keys)
     finally:

@@ -11,7 +11,7 @@ def _redis() -> Redis:
 
 async def allow_request(scope: str, identifier: str, limit: int) -> bool:
     redis = _redis()
-    key = f"presidio:rate:{scope}:{identifier}"
+    key = f"novabot:rate:{scope}:{identifier}"
     try:
         count = await redis.incr(key)
         if count == 1:
@@ -26,7 +26,7 @@ async def allow_request(scope: str, identifier: str, limit: int) -> bool:
 async def reserve_token_budget(user_id: UUID, estimated_tokens: int) -> bool:
     redis = _redis()
     settings = get_settings()
-    key = f"presidio:budget:{user_id}"
+    key = f"novabot:budget:{user_id}"
     try:
         total = await redis.incrby(key, max(1, estimated_tokens))
         if total == estimated_tokens:
@@ -41,7 +41,7 @@ async def reserve_token_budget(user_id: UUID, estimated_tokens: int) -> bool:
 async def login_locked(email: str) -> bool:
     redis = _redis()
     try:
-        return bool(await redis.exists(f"presidio:login-lock:{email.lower()}"))
+        return bool(await redis.exists(f"novabot:login-lock:{email.lower()}"))
     except Exception:
         return False
     finally:
@@ -51,13 +51,13 @@ async def login_locked(email: str) -> bool:
 async def record_login_failure(email: str) -> None:
     redis = _redis()
     settings = get_settings()
-    key = f"presidio:login-fail:{email.lower()}"
+    key = f"novabot:login-fail:{email.lower()}"
     try:
         failures = await redis.incr(key)
         await redis.expire(key, settings.login_lockout_seconds)
         if failures >= settings.login_failure_limit:
             await redis.setex(
-                f"presidio:login-lock:{email.lower()}",
+                f"novabot:login-lock:{email.lower()}",
                 settings.login_lockout_seconds,
                 "1",
             )
@@ -70,7 +70,7 @@ async def record_login_failure(email: str) -> None:
 async def clear_login_failures(email: str) -> None:
     redis = _redis()
     try:
-        await redis.delete(f"presidio:login-fail:{email.lower()}", f"presidio:login-lock:{email.lower()}")
+        await redis.delete(f"novabot:login-fail:{email.lower()}", f"novabot:login-lock:{email.lower()}")
     except Exception:
         return
     finally:

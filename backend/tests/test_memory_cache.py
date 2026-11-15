@@ -303,7 +303,7 @@ async def test_expired_cached_document_is_evicted(client, monkeypatch):
             async def acheck(self, **kwargs):
                 return [
                     {
-                        "id": "presidio_semantic_cache:expired",
+                        "id": "novabot_semantic_cache:expired",
                         "response": "stale answer",
                         "metadata": {"citations": [citation.model_dump(mode="json")]},
                     }

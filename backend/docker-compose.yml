@@ -2,7 +2,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: presidio
+      POSTGRES_DB: novabot
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
